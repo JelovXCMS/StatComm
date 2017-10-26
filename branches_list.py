@@ -311,7 +311,7 @@ branches["secfeedback_comment_textarea"]='C'
 # 11.3. Do you have a suggestion for improving this questionnaire? Do you have a suggestion for improving interaction with the CMS Statistics Committee in general or documentation of   statistical recommendations?
 branches["secfeedback_feedback_textarea"]='C'
 
-# Questionnaire status (to remove updates, __updates should be 0)
+# Questionnaire status
 branches["__save"]='C'
 branches["__submit"]='C'
 branches["__updates"]='C'
