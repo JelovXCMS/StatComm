@@ -320,3 +320,5 @@ branches_str = ":".join(row + '/' + branches[row] for row in branches)
 
 # add the date
 branches_str += ":date/C:year/I:month/I:day/I"
+# add the cadi number parsed
+branches_str += ":secac_cadi_yy/I:secac_cadi_nnn/I"

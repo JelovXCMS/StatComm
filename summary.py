@@ -156,6 +156,13 @@ for idx,row in enumerate(c.execute("SELECT * from questionnaires;")):
     if debug:
         print quest
 
+    if '__updates' in quest and quest['__updates']!=ID: 
+        if debug:  print "UPDATES", quest['__updates'], ID, quest['__updates']==ID
+        continue
+
+    if pag != "" and 'secac_wg' in quest and quest['secac_wg'] != pag:
+        continue
+
     # fill the string for the ttree
     key_val_list = []
     for key in branches:
@@ -167,31 +174,37 @@ for idx,row in enumerate(c.execute("SELECT * from questionnaires;")):
                 else:
                     print "Error, expected yes or no, got ", key_val
                     key_val='0'
-            else: key_val = "\"" + key_val + "\""
+            #  else: key_val = "\"" + key_val + "\""
         else: key_val="0"#"\"\""
 
         key_val=re.sub('\n',' ',key_val)
         key_val=re.sub('\r',' ',key_val)
         key_val=re.sub(',',';',key_val)
+        if key_val=="": key_val="0"
         key_val_list.append(key_val)
 
     # let's add the date
-    key_val_list.append('\"%d-%d-%d\"' % (subdate.year, subdate.month, subdate.day))
+    key_val_list.append('%d-%d-%d' % (subdate.year, subdate.month, subdate.day))
     key_val_list.append('%d' % subdate.year)
     key_val_list.append('%d' % subdate.month)
     key_val_list.append('%d' % subdate.day)
+    # and also the CADI number parsed
+    if "secac_cadi_text" in quest:
+        tmps = quest["secac_cadi_text"][4:6]
+        if tmps=="": tmps="0"
+        if re.sub("[0-9]*","",tmps) != "": tmps="0"
+        key_val_list.append(tmps)
+        tmps = quest["secac_cadi_text"][7:10]
+        if tmps=="": tmps="0"
+        if re.sub("[0-9]*","",tmps) != "": tmps="0"
+        key_val_list.append(tmps)
+    else:
+        key_val_list.append(["0","0"])
 
     if debug:
         print "csv parsed: ", ",".join(key_val_list)
     toparse += ",".join(key_val_list)
     toparse += "\n"
-
-    if '__updates' in quest and quest['__updates']!=ID: 
-        if debug:  print "UPDATES", quest['__updates'], ID, quest['__updates']==ID
-        continue
-
-    if pag != "" and 'secac_wg' in quest and quest['secac_wg'] != pag:
-        continue
     
     npass +=1
     extras = [""]
