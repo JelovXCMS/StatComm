@@ -15,13 +15,15 @@ import ROOT
 from optparse import OptionParser
 
 parser=OptionParser()
-parser.add_option("-f","--file",help="db file [%default]",default="~dorigo/public/quest_copy/data/data.db")
+parser.add_option("-f","--file",help="db file [default=%default]",default="~dorigo/public/quest_copy/data/data.db")
+parser.add_option("-p","--pag",help="only print questionnaires for this PAG [default=%default]",default="")
 
 opts,args=parser.parse_args()
 debug=False
 
 conn = sqlite3.connect(opts.file)
 c = conn.cursor()
+pag = opts.pag
 
 ## for Asymm CP errors
 #import betainv
@@ -52,7 +54,7 @@ class summary():
             if key in self.dont_norm: continue
             S=0.0
             for v in self.cont_[key]: S += self.cont_[key][v]
-            for v in self.cont_[key]: self.cont_[key][v] /= S
+            #  for v in self.cont_[key]: self.cont_[key][v] /= S
 
     def getFractions(self,key):
         fracs=[]
@@ -149,6 +151,9 @@ for idx,row in enumerate(c.execute("SELECT * from questionnaires;")):
 
     if '__updates' in quest and quest['__updates']!=ID: 
         if debug:  print "UPDATES", quest['__updates'], ID, quest['__updates']==ID
+        continue
+
+    if pag != "" and 'secac_wg' in quest and quest['secac_wg'] != pag:
         continue
     
     npass +=1
@@ -251,23 +256,25 @@ with plt.xkcd():
     plt.suptitle("interval software (2015+)")
     plt.savefig(pp, format='pdf')
     
-    fig, ax1 = plt.subplots()
-    fracs,labels=summ.getFractions('combine_wg')
-    explode=[]
-    for v in labels: explode.append(0.01)
-    ax1.pie(fracs, explode=explode, labels=labels , colors=colors, wedgeprops={'linewidth': 1,'edgecolor':'black'},autopct='%.0f%%',)
-    ax1.axis('equal') 
-    plt.suptitle("subgroups using combine")
-    plt.savefig(pp, format='pdf')
+    if 'combine_wg' in summ.cont_:
+        fig, ax1 = plt.subplots()
+        fracs,labels=summ.getFractions('combine_wg')
+        explode=[]
+        for v in labels: explode.append(0.01)
+        ax1.pie(fracs, explode=explode, labels=labels , colors=colors, wedgeprops={'linewidth': 1,'edgecolor':'black'},autopct='%.0f%%',)
+        ax1.axis('equal') 
+        plt.suptitle("subgroups using combine")
+        plt.savefig(pp, format='pdf')
 
-    fig, ax1 = plt.subplots()
-    fracs,labels=summ.getFractions('combine_wg_recent')
-    explode=[]
-    for v in labels: explode.append(0.01)
-    ax1.pie(fracs, explode=explode, labels=labels , colors=colors, wedgeprops={'linewidth': 1,'edgecolor':'black'},autopct='%.0f%%',)
-    ax1.axis('equal') 
-    plt.suptitle("subgroups using combine (2015+)")
-    plt.savefig(pp, format='pdf')
+    if 'combine_wg_recent' in summ.cont_:
+        fig, ax1 = plt.subplots()
+        fracs,labels=summ.getFractions('combine_wg_recent')
+        explode=[]
+        for v in labels: explode.append(0.01)
+        ax1.pie(fracs, explode=explode, labels=labels , colors=colors, wedgeprops={'linewidth': 1,'edgecolor':'black'},autopct='%.0f%%',)
+        ax1.axis('equal') 
+        plt.suptitle("subgroups using combine (2015+)")
+        plt.savefig(pp, format='pdf')
 
     fig, ax1 = plt.subplots()
     fracs,labels=summ.getFractions('unfolding')
