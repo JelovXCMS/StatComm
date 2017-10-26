@@ -14,12 +14,15 @@ import ROOT
 
 from optparse import OptionParser
 
+from branches_list import *
+
 parser=OptionParser()
 parser.add_option("-f","--file",help="db file [default=%default]",default="~dorigo/public/quest_copy/data/data.db")
 parser.add_option("-p","--pag",help="only print questionnaires for this PAG [default=%default]",default="")
+parser.add_option("-d","--debug",help="debug",default=False,action="store_true")
 
 opts,args=parser.parse_args()
-debug=False
+debug=opts.debug
 
 conn = sqlite3.connect(opts.file)
 c = conn.cursor()
@@ -73,11 +76,15 @@ summ = summary()
 
 recent= datetime.date(2015,1,1)
 
+# prepare the output tree
+ttree = ROOT.TTree("questdata","SC questionnaire data")
+
 print "RECENT definition is",recent
 
 npass=0
 nfail=0
 ntot=0
+toparse=""
 for idx,row in enumerate(c.execute("SELECT * from questionnaires;")):
     
     ID = row[0]
@@ -149,6 +156,36 @@ for idx,row in enumerate(c.execute("SELECT * from questionnaires;")):
     if debug:
         print quest
 
+    # fill the string for the ttree
+    key_val_list = []
+    for key in branches:
+        if key in quest:
+            key_val = quest[key]
+            if branches[key] == 'B': # boolean
+                if key_val == "yes": key_val='1'
+                elif key_val == "no" or key_val == "doesntapply" or key_val == "dont" or key_val == "undecided": key_val='0'
+                else:
+                    print "Error, expected yes or no, got ", key_val
+                    key_val='0'
+            else: key_val = "\"" + key_val + "\""
+        else: key_val="0"#"\"\""
+
+        key_val=re.sub('\n',' ',key_val)
+        key_val=re.sub('\r',' ',key_val)
+        key_val=re.sub(',',';',key_val)
+        key_val_list.append(key_val)
+
+    # let's add the date
+    key_val_list.append('\"%d-%d-%d\"' % (subdate.year, subdate.month, subdate.day))
+    key_val_list.append('%d' % subdate.year)
+    key_val_list.append('%d' % subdate.month)
+    key_val_list.append('%d' % subdate.day)
+
+    if debug:
+        print "csv parsed: ", ",".join(key_val_list)
+    toparse += ",".join(key_val_list)
+    toparse += "\n"
+
     if '__updates' in quest and quest['__updates']!=ID: 
         if debug:  print "UPDATES", quest['__updates'], ID, quest['__updates']==ID
         continue
@@ -191,6 +228,12 @@ for idx,row in enumerate(c.execute("SELECT * from questionnaires;")):
 
     #print quest
 print "using info from",npass,"questionnaires", "(NTOT=",ntot,"FAIL PARSE",nfail,")"
+
+import unicodedata
+toparse = unicodedata.normalize('NFKD', toparse).encode('ascii','ignore')
+itoparse = ROOT.istringstream(toparse)
+ttree.ReadStream(itoparse,branches_str,',')
+ttree.SaveAs("quest_data.root")
 
 for e in ["","_recent"]:
     summ.dontnorm('pval_extreme_wg'+e+'_norm')
