@@ -721,10 +721,10 @@ void SCQuestDataReader::Show(Long64_t entry)
    fChain->GetEntry(entry);
 
    cout << " 1. Analysis Context" << endl;
-   cout << " 1.1. Your name" << endl;
-   cout << secac_name_text << endl;
-   cout << " 1.2. Your email address" << endl;
-   cout << secac_email_text << endl;
+   // cout << " 1.1. Your name" << endl;
+   // cout << secac_name_text << endl;
+   // cout << " 1.2. Your email address" << endl;
+   // cout << secac_email_text << endl;
    cout << " 1.3. Working group" << endl;
    cout << secac_wg << endl;
    cout << secac_wg_text << endl;
