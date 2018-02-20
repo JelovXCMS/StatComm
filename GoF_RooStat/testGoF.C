@@ -16,6 +16,7 @@
 #include "RooPlot.h"
 #include "TTree.h"
 #include "TFile.h"
+#include "RooMsgService.h"
 
 #include "RooGoF.C"
 
@@ -90,7 +91,8 @@ void testGoF()
    // GoF objects
    RooGoF goftest(xframe->getHist("h_modelData"),xframe->getCurve("model_Norm[x]"));
    goftest.setRange(x.getMin(),x.getMax());
-   RooGoF goftest_unbinned(data,xframe->getCurve("model_Norm[x]"),"x");
+   // RooGoF goftest_unbinned(data,xframe->getCurve("model_Norm[x]"),"x");
+   RooGoF goftest_unbinned(data,&model,&x);
    goftest_unbinned.setRange(x.getMin(),x.getMax());
    double pvalue, testStat;
 
@@ -108,10 +110,9 @@ void testGoF()
    goftest.PearsonChi2Test(pvalue,testStat);
    cout << "Pearson: " << pvalue << ", " << testStat << endl;
 
-
    // T o y   s t u d y
    // -----------------
-   int ntoys = 10;
+   int ntoys = 1000;
    double pval_AD_before, ts_AD_before;
    double pval_AD_after, ts_AD_after;
    double pval_KS_before, ts_KS_before;
@@ -144,7 +145,12 @@ void testGoF()
    tr->Branch("pval_NeymanChi2_after",&pval_NeymanChi2_after,"pval_NeymanChi2_after/D");
    tr->Branch("ts_NeymanChi2_after",&ts_NeymanChi2_after,"ts_NeymanChi2_after/D");
 
+   // silence RooFit output during toys
+   RooFit::MsgLevel oldLevel = RooMsgService::instance().globalKillBelow() ;
+   RooMsgService::instance().setGlobalKillBelow(RooFit::PROGRESS) ;
+
    for (int i=0; i<ntoys; i++) {
+      if (i%100==0) cout << i << "/" << ntoys << endl;
       // go back to initial parameters
       *params = *bestFitParams;
       
@@ -159,7 +165,8 @@ void testGoF()
       // do gof before
       RooGoF goftesttoy(xframetoy->getHist("h_modelData"),xframetoy->getCurve("model_Norm[x]"));
       goftesttoy.setRange(x.getMin(),x.getMax());
-      RooGoF goftesttoy_unbinned(datatoy,xframetoy->getCurve("model_Norm[x]"),"x");
+      // RooGoF goftesttoy_unbinned(datatoy,xframetoy->getCurve("model_Norm[x]"),"x");
+      RooGoF goftesttoy_unbinned(datatoy,&model,&x);
       goftesttoy_unbinned.setRange(x.getMin(),x.getMax());
       goftesttoy_unbinned.ADTest(pval_AD_before,ts_AD_before);
       goftesttoy_unbinned.KSTest(pval_KS_before,ts_KS_before);
@@ -176,7 +183,8 @@ void testGoF()
       model.plotOn(xframetoy2) ;
       RooGoF goftesttoy2(xframetoy2->getHist("h_modelData"),xframetoy2->getCurve("model_Norm[x]"));
       goftesttoy2.setRange(x.getMin(),x.getMax());
-      RooGoF goftesttoy2_unbinned(datatoy,xframetoy2->getCurve("model_Norm[x]"),"x");
+      // RooGoF goftesttoy2_unbinned(datatoy,xframetoy2->getCurve("model_Norm[x]"),"x");
+      RooGoF goftesttoy2_unbinned(datatoy,&model,&x);
       goftesttoy2_unbinned.setRange(x.getMin(),x.getMax());
       goftesttoy2_unbinned.ADTest(pval_AD_after,ts_AD_after);
       goftesttoy2_unbinned.KSTest(pval_KS_after,ts_KS_after);
@@ -192,6 +200,8 @@ void testGoF()
       delete xframetoy;
       delete xframetoy2;
    }
+
+   RooMsgService::instance().setGlobalKillBelow(oldLevel) ;
 
    // plot the toy results
    // save tree to file
