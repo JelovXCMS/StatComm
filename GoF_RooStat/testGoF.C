@@ -11,12 +11,15 @@
 #include "RooGaussian.h"
 #include "RooChebychev.h"
 #include "RooAddPdf.h"
+#include "RooMsgService.h"
+#include "RooPlot.h"
+
 #include "TCanvas.h"
 #include "TAxis.h"
-#include "RooPlot.h"
 #include "TTree.h"
 #include "TFile.h"
-#include "RooMsgService.h"
+#include "TCanvas.h"
+#include "TStyle.h"
 
 #include "RooGoF.C"
 
@@ -147,7 +150,7 @@ void testGoF()
 
    // silence RooFit output during toys
    RooFit::MsgLevel oldLevel = RooMsgService::instance().globalKillBelow() ;
-   RooMsgService::instance().setGlobalKillBelow(RooFit::PROGRESS) ;
+   RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING) ;
 
    for (int i=0; i<ntoys; i++) {
       if (i%100==0) cout << i << "/" << ntoys << endl;
@@ -204,6 +207,52 @@ void testGoF()
    RooMsgService::instance().setGlobalKillBelow(oldLevel) ;
 
    // plot the toy results
+   TCanvas c1("c1","c1");
+   c1.Print("plots.pdf[");
+   gStyle->SetOptTitle(1);
+   gStyle->SetOptStat("emr");
+   tr->Draw("pval_AD_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_AD_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_AD_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_AD_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_KS_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_KS_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_KS_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_KS_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_BCChi2_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_BCChi2_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_BCChi2_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_BCChi2_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_NeymanChi2_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_NeymanChi2_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_NeymanChi2_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_NeymanChi2_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_PearsonChi2_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_PearsonChi2_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_PearsonChi2_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_PearsonChi2_after");
+   c1.SaveAs("plots.pdf");
+   c1.Print("plots.pdf]");
+
    // save tree to file
    TFile *f = new TFile("toys.root","RECREATE");
    tr->Write();
