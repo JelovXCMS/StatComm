@@ -13,6 +13,7 @@
 #include "RooAddPdf.h"
 #include "RooMsgService.h"
 #include "RooPlot.h"
+#include "RooFitResult.h"
 
 #include "TCanvas.h"
 #include "TAxis.h"
@@ -70,10 +71,13 @@ void testGoF()
    RooDataSet *data = model.generate(x,1000) ;
 
    // Fit model to data
-   model.fitTo(*data) ;
+   RooFitResult *fr = model.fitTo(*data,Save()) ;
    // save best fit parameters
    RooArgSet* params = model.getParameters(x) ;
    RooArgSet* bestFitParams = (RooArgSet*) params->snapshot() ;
+
+   // need to account for the number of fit parameters when computing the chi2 pvalues
+   int d_ndf = fr->floatParsFinal().getSize() ;
 
    // Plot data and PDF overlaid
    RooPlot* xframe = x.frame(Title("Example of composite pdf=(sig1+sig2)+bkg")) ;
@@ -101,27 +105,49 @@ void testGoF()
 
    // unbinned tests
    goftest_unbinned.ADTest(pvalue,testStat);
-   cout << "AD: " << pvalue << ", " << testStat << endl;
+   cout << "AD (asym.): " << pvalue << ", " << testStat << endl;
    goftest_unbinned.KSTest(pvalue,testStat);
-   cout << "KS: " << pvalue << ", " << testStat << endl;
+   cout << "KS (asym.): " << pvalue << ", " << testStat << endl;
+
+   // we can also estimate the p-value using toys
+   goftest_unbinned.setNtoys(1000,true);
+   goftest_unbinned.ADTest(pvalue,testStat);
+   cout << "AD (toys): " << pvalue << ", " << testStat << endl;
+   goftest_unbinned.KSTest(pvalue,testStat);
+   cout << "KS (toys): " << pvalue << ", " << testStat << endl;
    
    // binned tests
-   goftest.BCChi2Test(pvalue,testStat);
+   goftest.BCChi2Test(pvalue,testStat,d_ndf);
    cout << "BC: " << pvalue << ", " << testStat << endl;
-   goftest.NeymanChi2Test(pvalue,testStat);
+   goftest.NeymanChi2Test(pvalue,testStat,d_ndf);
    cout << "Neyman: " << pvalue << ", " << testStat << endl;
-   goftest.PearsonChi2Test(pvalue,testStat);
+   goftest.PearsonChi2Test(pvalue,testStat,d_ndf);
    cout << "Pearson: " << pvalue << ", " << testStat << endl;
+   goftest.RooFitChi2Test(pvalue,testStat,d_ndf);
+   cout << "RooFit: " << pvalue << ", " << testStat << endl;
 
-   // T o y   s t u d y
+   // return;
+
+
+
+
+   // T O Y   S T U D Y
    // -----------------
    int ntoys = 1000;
+
+   // we will recycle the distributions of the AD and KS test statistics from toys
+   RooStats::SamplingDistribution *sd_AD = goftest_unbinned.getSamplingDist_AD();
+   RooStats::SamplingDistribution *sd_KS = goftest_unbinned.getSamplingDist_KS();
+
+   // set up the tree
    double pval_AD_before, ts_AD_before;
-   double pval_AD_after, ts_AD_after;
+   double pval_AD_after, ts_AD_after, pval_AD_after_toys;
    double pval_KS_before, ts_KS_before;
-   double pval_KS_after, ts_KS_after;
+   double pval_KS_after, ts_KS_after, pval_KS_after_toys;
    double pval_BCChi2_before, ts_BCChi2_before;
    double pval_BCChi2_after, ts_BCChi2_after;
+   double pval_RooFitChi2_before, ts_RooFitChi2_before;
+   double pval_RooFitChi2_after, ts_RooFitChi2_after;
    double pval_PearsonChi2_before, ts_PearsonChi2_before;
    double pval_PearsonChi2_after, ts_PearsonChi2_after;
    double pval_NeymanChi2_before, ts_NeymanChi2_before;
@@ -130,15 +156,21 @@ void testGoF()
    tr->Branch("pval_AD_before",&pval_AD_before,"pval_AD_before/D");
    tr->Branch("ts_AD_before",&ts_AD_before,"ts_AD_before/D");
    tr->Branch("pval_AD_after",&pval_AD_after,"pval_AD_after/D");
+   tr->Branch("pval_AD_after_toys",&pval_AD_after_toys,"pval_AD_after_toys/D");
    tr->Branch("ts_AD_after",&ts_AD_after,"ts_AD_after/D");
    tr->Branch("pval_KS_before",&pval_KS_before,"pval_KS_before/D");
    tr->Branch("ts_KS_before",&ts_KS_before,"ts_KS_before/D");
    tr->Branch("pval_KS_after",&pval_KS_after,"pval_KS_after/D");
+   tr->Branch("pval_KS_after_toys",&pval_KS_after_toys,"pval_KS_after_toys/D");
    tr->Branch("ts_KS_after",&ts_KS_after,"ts_KS_after/D");
    tr->Branch("pval_BCChi2_before",&pval_BCChi2_before,"pval_BCChi2_before/D");
    tr->Branch("ts_BCChi2_before",&ts_BCChi2_before,"ts_BCChi2_before/D");
    tr->Branch("pval_BCChi2_after",&pval_BCChi2_after,"pval_BCChi2_after/D");
    tr->Branch("ts_BCChi2_after",&ts_BCChi2_after,"ts_BCChi2_after/D");
+   tr->Branch("pval_RooFitChi2_before",&pval_RooFitChi2_before,"pval_RooFitChi2_before/D");
+   tr->Branch("ts_RooFitChi2_before",&ts_RooFitChi2_before,"ts_RooFitChi2_before/D");
+   tr->Branch("pval_RooFitChi2_after",&pval_RooFitChi2_after,"pval_RooFitChi2_after/D");
+   tr->Branch("ts_RooFitChi2_after",&ts_RooFitChi2_after,"ts_RooFitChi2_after/D");
    tr->Branch("pval_PearsonChi2_before",&pval_PearsonChi2_before,"pval_PearsonChi2_before/D");
    tr->Branch("ts_PearsonChi2_before",&ts_PearsonChi2_before,"ts_PearsonChi2_before/D");
    tr->Branch("pval_PearsonChi2_after",&pval_PearsonChi2_after,"pval_PearsonChi2_after/D");
@@ -150,8 +182,11 @@ void testGoF()
 
    // silence RooFit output during toys
    RooFit::MsgLevel oldLevel = RooMsgService::instance().globalKillBelow() ;
-   RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING) ;
+   RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL) ;
+   RooMsgService::instance().setSilentMode(true) ;
 
+
+   // main loop for toys
    for (int i=0; i<ntoys; i++) {
       if (i%100==0) cout << i << "/" << ntoys << endl;
       // go back to initial parameters
@@ -171,9 +206,11 @@ void testGoF()
       // RooGoF goftesttoy_unbinned(datatoy,xframetoy->getCurve("model_Norm[x]"),"x");
       RooGoF goftesttoy_unbinned(datatoy,&model,&x);
       goftesttoy_unbinned.setRange(x.getMin(),x.getMax());
+      
       goftesttoy_unbinned.ADTest(pval_AD_before,ts_AD_before);
       goftesttoy_unbinned.KSTest(pval_KS_before,ts_KS_before);
       goftesttoy.BCChi2Test(pval_BCChi2_before,ts_BCChi2_before);
+      goftesttoy.RooFitChi2Test(pval_RooFitChi2_before,ts_RooFitChi2_before);
       goftesttoy.NeymanChi2Test(pval_NeymanChi2_before,ts_NeymanChi2_before);
       goftesttoy.PearsonChi2Test(pval_PearsonChi2_before,ts_PearsonChi2_before);
 
@@ -188,12 +225,22 @@ void testGoF()
       goftesttoy2.setRange(x.getMin(),x.getMax());
       // RooGoF goftesttoy2_unbinned(datatoy,xframetoy2->getCurve("model_Norm[x]"),"x");
       RooGoF goftesttoy2_unbinned(datatoy,&model,&x);
+      RooGoF goftesttoy2_unbinned_t(datatoy,&model,&x);
       goftesttoy2_unbinned.setRange(x.getMin(),x.getMax());
+      goftesttoy2_unbinned_t.setRange(x.getMin(),x.getMax());
+      goftesttoy2_unbinned_t.setNtoys(100,true);
+      goftesttoy2_unbinned_t.setSamplingDist_AD(sd_AD);
+      goftesttoy2_unbinned_t.setSamplingDist_KS(sd_KS);
+
       goftesttoy2_unbinned.ADTest(pval_AD_after,ts_AD_after);
       goftesttoy2_unbinned.KSTest(pval_KS_after,ts_KS_after);
-      goftesttoy2.BCChi2Test(pval_BCChi2_after,ts_BCChi2_after);
-      goftesttoy2.NeymanChi2Test(pval_NeymanChi2_after,ts_NeymanChi2_after);
-      goftesttoy2.PearsonChi2Test(pval_PearsonChi2_after,ts_PearsonChi2_after);
+      double tmp;
+      goftesttoy2_unbinned_t.ADTest(pval_AD_after_toys,tmp);
+      goftesttoy2_unbinned_t.KSTest(pval_KS_after_toys,tmp);
+      goftesttoy2.BCChi2Test(pval_BCChi2_after,ts_BCChi2_after,d_ndf);
+      goftesttoy2.RooFitChi2Test(pval_RooFitChi2_after,ts_RooFitChi2_after,d_ndf);
+      goftesttoy2.NeymanChi2Test(pval_NeymanChi2_after,ts_NeymanChi2_after,d_ndf);
+      goftesttoy2.PearsonChi2Test(pval_PearsonChi2_after,ts_PearsonChi2_after,d_ndf);
 
       // fill the tree
       tr->Fill();
@@ -217,6 +264,8 @@ void testGoF()
    c1.SaveAs("plots.pdf");
    tr->Draw("pval_AD_after");
    c1.SaveAs("plots.pdf");
+   tr->Draw("pval_AD_after_toys");
+   c1.SaveAs("plots.pdf");
    tr->Draw("ts_AD_after");
    c1.SaveAs("plots.pdf");
    tr->Draw("pval_KS_before");
@@ -224,6 +273,8 @@ void testGoF()
    tr->Draw("ts_KS_before");
    c1.SaveAs("plots.pdf");
    tr->Draw("pval_KS_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_KS_after_toys");
    c1.SaveAs("plots.pdf");
    tr->Draw("ts_KS_after");
    c1.SaveAs("plots.pdf");
@@ -234,6 +285,14 @@ void testGoF()
    tr->Draw("pval_BCChi2_after");
    c1.SaveAs("plots.pdf");
    tr->Draw("ts_BCChi2_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_RooFitChi2_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_RooFitChi2_before");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("pval_RooFitChi2_after");
+   c1.SaveAs("plots.pdf");
+   tr->Draw("ts_RooFitChi2_after");
    c1.SaveAs("plots.pdf");
    tr->Draw("pval_NeymanChi2_before");
    c1.SaveAs("plots.pdf");
