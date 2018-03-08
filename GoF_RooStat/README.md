@@ -30,5 +30,9 @@ In the case of the AD and KS tests, it is possible to estimate their expected di
 * ``getSamplingDist_AD()``: get the distribution of the AD test statistic
 * ``getSamplingDist_KS()``: get the distribution of the KS test statistic
 
+### Other
+* ``setRange(double xmin, double xmax)``: set the range in which to compute the test
+* ``setRebin(int min_bincontent)``: set the minimum bin content. Bins below this value will be merged. (Default: equal to 0, no merging is done)
+
 ## More information
 See [these slides](https://indico.cern.ch/event/706009/contributions/2906952/attachments/1607035/2550282/chapon_GoF_20180226.pdf).

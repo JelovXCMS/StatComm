@@ -206,7 +206,7 @@ namespace RooFit {
             continue;
          }
 
-         if (_min_binc>0 && dd <= _min_binc && i<_ndat-1) continue; // loop until we reach the minimum number of observed events (except if this is the last bin)
+         if (_min_binc>0 && dd<_min_binc && i<_ndat-1) continue; // loop until we reach the minimum number of observed events (except if this is the last bin)
          
          if (mode==BCChi2) testStat += ff - dd + dd*log(dd/ff);
          else if (mode==PearsonChi2) testStat += pow(dd-ff,2)/ff;
