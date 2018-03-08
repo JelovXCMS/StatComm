@@ -29,3 +29,6 @@ In the case of the AD and KS tests, it is possible to estimate their expected di
 * ``setSamplingDist_KS(SamplingDistribution *sd)``: recycle existing RooStats::SamplingDistribution for the KS test statistic
 * ``getSamplingDist_AD()``: get the distribution of the AD test statistic
 * ``getSamplingDist_KS()``: get the distribution of the KS test statistic
+
+## More information
+See [these slides](https://indico.cern.ch/event/706009/contributions/2906952/attachments/1607035/2550282/chapon_GoF_20180226.pdf).
