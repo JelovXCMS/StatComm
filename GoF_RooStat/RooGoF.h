@@ -17,7 +17,7 @@
 using RooStats::SamplingDistribution;
 
 namespace RooFit {
-   class RooGoF {
+   class RooGoF : public TObject {
       public:
          RooGoF(RooHist *hist, RooCurve *curve);
          RooGoF(RooDataSet *data, RooCurve *curve, const char* varname);
@@ -27,7 +27,13 @@ namespace RooFit {
          double curve(double x);
          double curve_cdf(double x);
 
+         // set the range for the GoF test
          void setRange(double xmin, double xmax);
+
+         // rebinning mode (default = none)
+         void setRebin(int min_bincontent = 5);
+
+         // toys
          void setNtoys(int nToys, bool doReFit=true,
                const RooCmdArg &arg1=RooCmdArg::none(), const RooCmdArg &arg2=RooCmdArg::none(), 
                const RooCmdArg &arg3=RooCmdArg::none(), const RooCmdArg &arg4=RooCmdArg::none(), 
@@ -38,6 +44,7 @@ namespace RooFit {
          SamplingDistribution* getSamplingDist_AD();
          SamplingDistribution* getSamplingDist_KS();
 
+         // GoF test functions
          void KSTest(double &pvalue, double &testStat);
          void ADTest(double &pvalue, double &testStat);
          void BCChi2Test(double &pvalue, double &testStat, int d_ndf=0);
@@ -58,6 +65,7 @@ namespace RooFit {
          RooRealVar *_poi;
          double     _themin;
          double     _themax;
+         int        _min_binc;
          bool       _doReFit;
          int        _NToys;
          RooCmdArg  _arg1;

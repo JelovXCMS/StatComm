@@ -1,10 +1,12 @@
 #include "RooGoF.h"
 #include "TError.h"
 
+#include <vector>
+
 using RooStats::SamplingDistribution;
 
 namespace RooFit {
-   RooGoF::RooGoF(RooHist *hist, RooCurve *curve) {
+   RooGoF::RooGoF(RooHist *hist, RooCurve *curve) : TObject() {
       _curve = curve;
       _dataB = hist;
       _dataU = NULL;
@@ -14,13 +16,14 @@ namespace RooFit {
       _ndat = hist->GetN();
       _themin = hist->GetX()[0]-hist->GetEXlow()[0];
       _themax = hist->GetX()[_ndat-1]+hist->GetEXhigh()[_ndat-1];
+      _min_binc = 0;
       _NToys = 0;
       _doReFit = false;
       _sd_AD = NULL;
       _sd_KS = NULL;
    }
 
-   RooGoF::RooGoF(RooDataSet *data, RooCurve *curve, const char* varname) {
+   RooGoF::RooGoF(RooDataSet *data, RooCurve *curve, const char* varname) : TObject() {
       _curve = curve;
       _dataB = NULL;
       _pdf = NULL;
@@ -28,6 +31,7 @@ namespace RooFit {
       _poi = NULL;
       _themin = -1e99;
       _themax = 1e99;
+      _min_binc = 0;
       _NToys = 0;
       _doReFit = false;
       _sd_AD = NULL;
@@ -43,13 +47,14 @@ namespace RooFit {
       }
    }
 
-   RooGoF::RooGoF(RooDataSet *data, RooAbsPdf *pdf, RooRealVar *poi) {
+   RooGoF::RooGoF(RooDataSet *data, RooAbsPdf *pdf, RooRealVar *poi) : TObject() {
       _curve = NULL;
       _dataB = NULL;
       _pdf = pdf;
       _poi = poi;
       _themin = -1e99;
       _themax = 1e99;
+      _min_binc = 0;
       _NToys = 0;
       _doReFit = false;
       _sd_AD = NULL;
@@ -68,14 +73,14 @@ namespace RooFit {
       _cdf = _pdf->createCdf(*_poi);
    }
 
-   RooGoF::~RooGoF() {
-      if (_dataU) delete[] _dataU;
-      if (_cdf) delete _cdf;
-   }
-
    double RooGoF::curve(double x) {
       if (!_curve) return 0;
       return _curve->Eval(x);
+   }
+
+   RooGoF::~RooGoF() {
+      if (_dataU) delete[] _dataU;
+      if (_cdf) delete _cdf;
    }
 
    double RooGoF::curve_cdf(double x) {
@@ -87,6 +92,10 @@ namespace RooFit {
    void RooGoF::setRange(double xmin, double xmax) {
       _themin = xmin;
       _themax = xmax;
+   }
+
+   void RooGoF::setRebin(int min_bincontent) {
+      _min_binc = min_bincontent;
    }
 
    void RooGoF::setNtoys(int nToys, bool doReFit,
@@ -157,7 +166,7 @@ namespace RooFit {
       if (mode==RooFitChi2) {
          Int_t i ;
          Int_t nbin(0) ;
-         for (i=0 ; i<_ndat ; i++) { if (_dataB->GetY()[i]>0) { nbin++; } }
+         for (i=0 ; i<_ndat ; i++) { if (_dataB->GetY()[i]>0) { nbin++; } } // internally, RooCurve::chiSquare() removes empty bins
          int myndf = nbin-d_ndf;
          testStat = myndf*_curve->chiSquare(*_dataB,d_ndf);
          // cout << nbin << " " << d_ndf << " " << _curve->chiSquare(*_dataB,d_ndf) << endl;
@@ -166,23 +175,45 @@ namespace RooFit {
       }
 
       testStat=0;
-      int nbin(0);
-      ROOT::Math::Functor1D wf(this, &RooGoF::curve);
-      ROOT::Math::Integrator ig(ROOT::Math::IntegrationOneDim::kADAPTIVESINGULAR); 
-      ig.SetFunction(wf);
-      ig.SetRelTolerance(0.01);
+      int nbin=0;
+      double dd=0;
+      double ff=0;
+
+
       for (int i=0; i<_ndat; i++) {
-         double dd = _dataB->GetY()[i];
-         if (dd<0 || (dd==0 && mode==NeymanChi2)) {cout << "Error, empty bin " << i << endl; continue;}
+         double x = _dataB->GetX()[i];
+         if (x<_themin || x>_themax) continue;
+
+         dd += _dataB->GetY()[i];
+         if (_min_binc<=0 && 
+               (dd<0 || (dd==0 && (mode==BCChi2 || mode==NeymanChi2)))) {
+            coutW(Contents) << "RooGoF::binnedTest: empty bin " << i << "! Consider rebinning." << endl; 
+            dd=0;
+            ff=0;
+            continue;
+         }
 
          double binmin = _dataB->GetX()[i]-_dataB->GetEXlow()[i];
          double binmax = _dataB->GetX()[i]+_dataB->GetEXhigh()[i];
-         double ff = ig.Integral(binmin, binmax)/(binmax-binmin);
-         if (ff<0 || ((mode==BCChi2 || mode==PearsonChi2) && ff==0)) {cout << "Error, negative or null function in bin " << i << endl; continue;}
+         ff += _curve->average(binmin, binmax);
+
+         if (ff<0 || ((mode==BCChi2 || mode==PearsonChi2) && ff==0)) {
+            coutW(Contents) << "RooGoF::binnedTest:  negative or null function in bin " << i << "!" << endl; 
+            if (_min_binc<=0) {
+               dd=0;
+               ff=0;
+            }
+            continue;
+         }
+
+         if (_min_binc>0 && dd <= _min_binc && i<_ndat-1) continue; // loop until we reach the minimum number of observed events (except if this is the last bin)
          
          if (mode==BCChi2) testStat += ff - dd + dd*log(dd/ff);
          else if (mode==PearsonChi2) testStat += pow(dd-ff,2)/ff;
          else if (mode==NeymanChi2) testStat += pow(dd-ff,2)/dd;
+
+         dd=0;
+         ff=0;
 
          nbin++;
       }
@@ -190,6 +221,7 @@ namespace RooFit {
       if (mode==BCChi2) testStat *= 2.;
 
       pvalue = TMath::Prob(testStat,nbin-d_ndf);
+      // pvalue = TMath::Prob(testStat,_ndat-d_ndf);
    }
 
    void RooGoF::KSTest(double &pvalue, double &testStat) {unbinnedTest(pvalue,testStat,TSmode::KS);}
@@ -215,6 +247,7 @@ namespace RooFit {
 
       vector<double> v_AD, v_KS;
 
+      coutI(Contents) << "RooGoF::generateSamplingDist(): generating " << _NToys << " toys..." << endl;
       for (int i=0; i<_NToys; i++) {
          // go back to initial parameters
          *params = *bestFitParams;

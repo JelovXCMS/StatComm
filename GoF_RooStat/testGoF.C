@@ -96,8 +96,12 @@ void testGoF()
    xframe->Print("v");
 
    // GoF objects
+   // for binned tests
    RooGoF goftest(xframe->getHist("h_modelData"),xframe->getCurve("model_Norm[x]"));
    goftest.setRange(x.getMin(),x.getMax());
+   goftest.setRebin(5); // better rebin the data to make sure that all bins have >=5 events
+
+   // for unbinned tests
    // RooGoF goftest_unbinned(data,xframe->getCurve("model_Norm[x]"),"x");
    RooGoF goftest_unbinned(data,&model,&x);
    goftest_unbinned.setRange(x.getMin(),x.getMax());
