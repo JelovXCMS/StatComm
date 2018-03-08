@@ -185,28 +185,29 @@ namespace RooFit {
          if (x<_themin || x>_themax) continue;
 
          dd += _dataB->GetY()[i];
-         if (_min_binc<=0 && 
-               (dd<0 || (dd==0 && (mode==BCChi2 || mode==NeymanChi2)))) {
-            coutW(Contents) << "RooGoF::binnedTest: empty bin " << i << "! Consider rebinning." << endl; 
-            dd=0;
-            ff=0;
-            continue;
-         }
 
          double binmin = _dataB->GetX()[i]-_dataB->GetEXlow()[i];
          double binmax = _dataB->GetX()[i]+_dataB->GetEXhigh()[i];
          ff += _curve->average(binmin, binmax);
 
+         if (_min_binc>0 && dd<_min_binc && i<_ndat-1) continue; // loop until we reach the minimum number of observed events (except if this is the last bin)
+
+         if ((_min_binc<=0 || i==_ndat-1) && 
+               (dd<0 || (dd==0 && (mode==BCChi2 || mode==NeymanChi2)))) {
+            coutW(Fitting) << "RooGoF::binnedTest: empty bin " << i << "! Consider rebinning." << endl; 
+            dd=0;
+            ff=0;
+            continue;
+         }
+
          if (ff<0 || ((mode==BCChi2 || mode==PearsonChi2) && ff==0)) {
-            coutW(Contents) << "RooGoF::binnedTest:  negative or null function in bin " << i << "!" << endl; 
+            coutW(Fitting) << "RooGoF::binnedTest:  negative or null function in bin " << i << "!" << endl; 
             if (_min_binc<=0) {
                dd=0;
                ff=0;
             }
             continue;
          }
-
-         if (_min_binc>0 && dd<_min_binc && i<_ndat-1) continue; // loop until we reach the minimum number of observed events (except if this is the last bin)
          
          if (mode==BCChi2) testStat += ff - dd + dd*log(dd/ff);
          else if (mode==PearsonChi2) testStat += pow(dd-ff,2)/ff;
@@ -239,6 +240,7 @@ namespace RooFit {
       RooArgSet* bestFitParams = (RooArgSet*) params->snapshot() ;
 
       // silence RooFit output during toys
+      coutI(Fitting) << "RooGoF::generateSamplingDist(): generating " << _NToys << " toys..." << endl;
       RooFit::MsgLevel oldLevel = RooMsgService::instance().globalKillBelow() ;
       RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL) ;
       RooMsgService::instance().setSilentMode(true) ;
@@ -246,8 +248,6 @@ namespace RooFit {
       RooAbsReal *cdfold = _cdf;
 
       vector<double> v_AD, v_KS;
-
-      coutI(Contents) << "RooGoF::generateSamplingDist(): generating " << _NToys << " toys..." << endl;
       for (int i=0; i<_NToys; i++) {
          // go back to initial parameters
          *params = *bestFitParams;
