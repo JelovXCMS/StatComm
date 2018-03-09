@@ -123,13 +123,14 @@ void testGoF()
    cout << "KS (toys): " << pvalue << ", " << testStat << endl;
    
    // binned tests
-   goftest.BCChi2Test(pvalue,testStat,d_ndf);
+   int ndf=0;
+   goftest.BCChi2Test(pvalue,testStat,ndf,d_ndf);
    cout << "BC: " << pvalue << ", " << testStat << endl;
-   goftest.NeymanChi2Test(pvalue,testStat,d_ndf);
+   goftest.NeymanChi2Test(pvalue,testStat,ndf,d_ndf);
    cout << "Neyman: " << pvalue << ", " << testStat << endl;
-   goftest.PearsonChi2Test(pvalue,testStat,d_ndf);
+   goftest.PearsonChi2Test(pvalue,testStat,ndf,d_ndf);
    cout << "Pearson: " << pvalue << ", " << testStat << endl;
-   goftest.RooFitChi2Test(pvalue,testStat,d_ndf);
+   goftest.RooFitChi2Test(pvalue,testStat,ndf,d_ndf);
    cout << "RooFit: " << pvalue << ", " << testStat << endl;
 
    // return;
@@ -216,10 +217,10 @@ void testGoF()
       
       goftesttoy_unbinned.ADTest(pval_AD_before,ts_AD_before);
       goftesttoy_unbinned.KSTest(pval_KS_before,ts_KS_before);
-      goftesttoy.BCChi2Test(pval_BCChi2_before,ts_BCChi2_before);
-      goftesttoy.RooFitChi2Test(pval_RooFitChi2_before,ts_RooFitChi2_before);
-      goftesttoy.NeymanChi2Test(pval_NeymanChi2_before,ts_NeymanChi2_before);
-      goftesttoy.PearsonChi2Test(pval_PearsonChi2_before,ts_PearsonChi2_before);
+      goftesttoy.BCChi2Test(pval_BCChi2_before,ts_BCChi2_before,ndf);
+      goftesttoy.RooFitChi2Test(pval_RooFitChi2_before,ts_RooFitChi2_before,ndf);
+      goftesttoy.NeymanChi2Test(pval_NeymanChi2_before,ts_NeymanChi2_before,ndf);
+      goftesttoy.PearsonChi2Test(pval_PearsonChi2_before,ts_PearsonChi2_before,ndf);
 
       // do the fit
       model.fitTo(*datatoy,NumCPU(4)) ;
@@ -245,10 +246,10 @@ void testGoF()
       double tmp;
       goftesttoy2_unbinned_t.ADTest(pval_AD_after_toys,tmp);
       goftesttoy2_unbinned_t.KSTest(pval_KS_after_toys,tmp);
-      goftesttoy2.BCChi2Test(pval_BCChi2_after,ts_BCChi2_after,d_ndf);
-      goftesttoy2.RooFitChi2Test(pval_RooFitChi2_after,ts_RooFitChi2_after,d_ndf);
-      goftesttoy2.NeymanChi2Test(pval_NeymanChi2_after,ts_NeymanChi2_after,d_ndf);
-      goftesttoy2.PearsonChi2Test(pval_PearsonChi2_after,ts_PearsonChi2_after,d_ndf);
+      goftesttoy2.BCChi2Test(pval_BCChi2_after,ts_BCChi2_after,ndf,d_ndf);
+      goftesttoy2.RooFitChi2Test(pval_RooFitChi2_after,ts_RooFitChi2_after,ndf,d_ndf);
+      goftesttoy2.NeymanChi2Test(pval_NeymanChi2_after,ts_NeymanChi2_after,ndf,d_ndf);
+      goftesttoy2.PearsonChi2Test(pval_PearsonChi2_after,ts_PearsonChi2_after,ndf,d_ndf);
 
       // fill the tree
       tr->Fill();

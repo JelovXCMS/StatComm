@@ -13,14 +13,14 @@
 * ``RooGoF(RooDataSet *data, RooCurve *curve, const char* varname)``: for *unbinned* tests only (gof evaluation will be much slower than with the constructor above).
 
 ### Goodness-of-fit functions
-For all functions, the p-value and the test statistic are passed as references.
+For all functions, the p-value and the test statistic are passed as references. The number of degrees of freedom is also passed as reference for chi2 tests.
 The chi2 test functions take as optional parameter d_ndf, the number of free parameters in the fit.
 * ``void KSTest(double &pvalue, double &testStat)``: unbinned Kolmogorov-Smirnov test
 * ``void ADTest(double &pvalue, double &testStat)``: unbinned Anderson-Darling test
-* ``void BCChi2Test(double &pvalue, double &testStat, int d_ndf=0)``: binned Baker-Cousins chi2 test (log likelihood ratio with the saturated model): RECOMMENDED
-* ``void PearsonChi2Test(double &pvalue, double &testStat, int d_ndf=0)``: binned Pearson chi2 test (expected errors)
-* ``void NeymanChi2Test(double &pvalue, double &testStat, int d_ndf=0)``: binned Neyman chi2 test (observed errors) -- NOT RECOMMENDED
-* ``void RooFitChi2Test(double &pvalue, double &testStat, int d_ndf=0)``: default RooFit chi2 test (using observed errors) -- NOT RECOMMENDED
+* ``void BCChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf=0)``: binned Baker-Cousins chi2 test (log likelihood ratio with the saturated model): RECOMMENDED
+* ``void PearsonChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf=0)``: binned Pearson chi2 test (expected errors)
+* ``void NeymanChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf=0)``: binned Neyman chi2 test (observed errors) -- NOT RECOMMENDED
+* ``void RooFitChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf=0)``: default RooFit chi2 test (using observed errors) -- NOT RECOMMENDED
 
 ### Toys
 In the case of the AD and KS tests, it is possible to estimate their expected distribution from toy experiments

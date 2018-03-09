@@ -161,7 +161,7 @@ namespace RooFit {
       if (f) delete f;
    }
 
-   void RooGoF::binnedTest(double &pvalue, double &testStat, TSmode mode, int d_ndf) {
+   void RooGoF::binnedTest(double &pvalue, double &testStat, int &ndf, TSmode mode, int d_ndf) {
       pvalue=0;
       testStat=1e99;
       if (!_dataB) return;
@@ -171,10 +171,10 @@ namespace RooFit {
          Int_t i ;
          Int_t nbin(0) ;
          for (i=0 ; i<_ndat ; i++) { if (_dataB->GetY()[i]>0) { nbin++; } } // internally, RooCurve::chiSquare() removes empty bins
-         int myndf = nbin-d_ndf;
-         testStat = myndf*_curve->chiSquare(*_dataB,d_ndf);
+         ndf = nbin-d_ndf;
+         testStat = ndf*_curve->chiSquare(*_dataB,d_ndf);
          // cout << nbin << " " << d_ndf << " " << _curve->chiSquare(*_dataB,d_ndf) << endl;
-         pvalue = TMath::Prob(testStat,myndf);
+         pvalue = TMath::Prob(testStat,ndf);
          return;
       }
 
@@ -268,14 +268,15 @@ namespace RooFit {
 
       pvalue = TMath::Prob(testStat,nbin-d_ndf);
       // pvalue = TMath::Prob(testStat,_ndat-d_ndf);
+      ndf = nbin-d_ndf;
    }
 
    void RooGoF::KSTest(double &pvalue, double &testStat) {unbinnedTest(pvalue,testStat,TSmode::KS);}
    void RooGoF::ADTest(double &pvalue, double &testStat) {unbinnedTest(pvalue,testStat,TSmode::AD);}
-   void RooGoF::BCChi2Test(double &pvalue, double &testStat, int d_ndf) {binnedTest(pvalue,testStat,TSmode::BCChi2,d_ndf);}
-   void RooGoF::PearsonChi2Test(double &pvalue, double &testStat, int d_ndf) {binnedTest(pvalue,testStat,TSmode::PearsonChi2,d_ndf);}
-   void RooGoF::NeymanChi2Test(double &pvalue, double &testStat, int d_ndf) {binnedTest(pvalue,testStat,TSmode::NeymanChi2,d_ndf);}
-   void RooGoF::RooFitChi2Test(double &pvalue, double &testStat, int d_ndf) {binnedTest(pvalue,testStat,TSmode::RooFitChi2,d_ndf);}
+   void RooGoF::BCChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf) {binnedTest(pvalue,testStat,ndf,TSmode::BCChi2,d_ndf);}
+   void RooGoF::PearsonChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf) {binnedTest(pvalue,testStat,ndf,TSmode::PearsonChi2,d_ndf);}
+   void RooGoF::NeymanChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf) {binnedTest(pvalue,testStat,ndf,TSmode::NeymanChi2,d_ndf);}
+   void RooGoF::RooFitChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf) {binnedTest(pvalue,testStat,ndf,TSmode::RooFitChi2,d_ndf);}
 
    void RooGoF::generateSamplingDist() {
       if (!_cdf) return;

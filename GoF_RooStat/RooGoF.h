@@ -47,10 +47,10 @@ namespace RooFit {
          // GoF test functions
          void KSTest(double &pvalue, double &testStat);
          void ADTest(double &pvalue, double &testStat);
-         void BCChi2Test(double &pvalue, double &testStat, int d_ndf=0);
-         void PearsonChi2Test(double &pvalue, double &testStat, int d_ndf=0);
-         void NeymanChi2Test(double &pvalue, double &testStat, int d_ndf=0);
-         void RooFitChi2Test(double &pvalue, double &testStat, int d_ndf=0);
+         void BCChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf=0);
+         void PearsonChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf=0);
+         void NeymanChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf=0);
+         void RooFitChi2Test(double &pvalue, double &testStat, int &ndf, int d_ndf=0);
 
          // enum
          enum TSmode {KS, AD, BCChi2, PearsonChi2, NeymanChi2, RooFitChi2};
@@ -82,7 +82,7 @@ namespace RooFit {
 
          // private functions
          void unbinnedTest(double &pvalue, double &testStat, TSmode mode);
-         void binnedTest(double &pvalue, double &testStat, TSmode mode, int d_ndf);
+         void binnedTest(double &pvalue, double &testStat, int &ndf, TSmode mode, int d_ndf);
          void generateSamplingDist();
    };
 }
