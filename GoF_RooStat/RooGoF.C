@@ -17,6 +17,7 @@ namespace RooFit {
       _themin = hist->GetX()[0]-hist->GetEXlow()[0];
       _themax = hist->GetX()[_ndat-1]+hist->GetEXhigh()[_ndat-1];
       _min_binc = 0;
+      _rebinObs = false;
       _NToys = 0;
       _doReFit = false;
       _sd_AD = NULL;
@@ -32,6 +33,7 @@ namespace RooFit {
       _themin = -1e99;
       _themax = 1e99;
       _min_binc = 0;
+      _rebinObs = false;
       _NToys = 0;
       _doReFit = false;
       _sd_AD = NULL;
@@ -55,6 +57,7 @@ namespace RooFit {
       _themin = -1e99;
       _themax = 1e99;
       _min_binc = 0;
+      _rebinObs = false;
       _NToys = 0;
       _doReFit = false;
       _sd_AD = NULL;
@@ -94,8 +97,9 @@ namespace RooFit {
       _themax = xmax;
    }
 
-   void RooGoF::setRebin(int min_bincontent) {
+   void RooGoF::setRebin(int min_bincontent, bool rebinObs) {
       _min_binc = min_bincontent;
+      _rebinObs = rebinObs;
    }
 
    void RooGoF::setNtoys(int nToys, bool doReFit,
@@ -176,48 +180,89 @@ namespace RooFit {
 
       testStat=0;
       int nbin=0;
-      double dd=0;
-      double ff=0;
 
+      // simple case: no rebinning
+      if (_min_binc<=0) {
+         for (int i=0; i<_ndat; i++) {
+            double x = _dataB->GetX()[i];
+            if (x<_themin || x>_themax) continue;
 
-      for (int i=0; i<_ndat; i++) {
-         double x = _dataB->GetX()[i];
-         if (x<_themin || x>_themax) continue;
-
-         dd += _dataB->GetY()[i];
-
-         double binmin = _dataB->GetX()[i]-_dataB->GetEXlow()[i];
-         double binmax = _dataB->GetX()[i]+_dataB->GetEXhigh()[i];
-         ff += _curve->average(binmin, binmax);
-
-         if (_min_binc>0 && dd<_min_binc && i<_ndat-1) continue; // loop until we reach the minimum number of observed events (except if this is the last bin)
-
-         if ((_min_binc<=0 || i==_ndat-1) && 
-               (dd<0 || (dd==0 && (mode==BCChi2 || mode==NeymanChi2)))) {
-            coutW(Fitting) << "RooGoF::binnedTest: empty bin " << i << "! Consider rebinning." << endl; 
-            dd=0;
-            ff=0;
-            continue;
-         }
-
-         if (ff<0 || ((mode==BCChi2 || mode==PearsonChi2) && ff==0)) {
-            coutW(Fitting) << "RooGoF::binnedTest:  negative or null function in bin " << i << "!" << endl; 
-            if (_min_binc<=0) {
-               dd=0;
-               ff=0;
+            double dd = _dataB->GetY()[i];
+            if (dd<0 || (dd==0 && mode==NeymanChi2)) { // exclude empty bins for the Neyman chi2
+               coutW(Fitting) << "RooGoF::binnedTest: empty bin " << i << "! Consider rebinning." << endl; 
+               continue;
             }
-            continue;
+
+            double binmin = x-_dataB->GetEXlow()[i];
+            double binmax = x+_dataB->GetEXhigh()[i];
+            double ff = _curve->average(binmin, binmax);
+            if (ff<0 || ((mode==BCChi2 || mode==PearsonChi2) && ff==0)) { // exclude bins with 0 expectation for Pearson and B-C chi2
+               coutW(Fitting) << "RooGoF::binnedTest:  negative or null function in bin " << i << "!" << endl; 
+               continue;
+            }
+
+            if (mode==BCChi2) testStat += ff - dd + dd*log(dd/ff);
+            else if (mode==PearsonChi2) testStat += pow(dd-ff,2)/ff;
+            else if (mode==NeymanChi2) testStat += pow(dd-ff,2)/dd;
+
+            nbin++; // exclude empty bins
+         } // loop on bins
+      } else {
+         double dd=0, ff=0; // this will hold the data and function in the current (merged) bin
+         double ddp=-1, ffp=-1; // data and function in the previous (merged) bin
+         double dchi2=-1; // previous addition to the chi2
+
+         for (int i=0; i<_ndat; i++) {
+            double x = _dataB->GetX()[i];
+            if (x<_themin || x>_themax) continue;
+
+            dd += _dataB->GetY()[i];
+
+            double binmin = x-_dataB->GetEXlow()[i];
+            double binmax = x+_dataB->GetEXhigh()[i];
+            ff += _curve->average(binmin, binmax);
+
+            if (!_rebinObs && ff<_min_binc) continue; // loop until we reach the minimum number of expected events
+            if (_rebinObs && dd<_min_binc) continue; // loop until we reach the minimum number of observed events
+
+            if (dd<0 || (dd==0 && mode==NeymanChi2)) { // exclude empty bins for the Neyman chi2
+               coutW(Fitting) << "RooGoF::binnedTest: empty bin " << i << "! Consider rebinning more." << endl; 
+               continue;
+            }
+            if (ff<0 || ((mode==BCChi2 || mode==PearsonChi2) && ff==0)) { // exclude bins with 0 expectation for Pearson and B-C chi2
+               coutW(Fitting) << "RooGoF::binnedTest:  negative or null function in bin " << i << "!" << endl; 
+               continue;
+            }
+
+            if (ddp>=0 || ffp>=0) { // if either of ddp or ffp is positive, we are not in the first bin
+               if (mode==BCChi2) dchi2 = ffp - ddp + ddp*log(ddp/ffp);
+               else if (mode==PearsonChi2) dchi2 = pow(ddp-ffp,2)/ffp;
+               else if (mode==NeymanChi2) dchi2 = pow(ddp-ffp,2)/ddp;
+
+               testStat += dchi2;
+               nbin++;
+            }
+
+            ddp=dd; ffp=ff;
+            dd=0;   ff=0;
          }
-         
-         if (mode==BCChi2) testStat += ff - dd + dd*log(dd/ff);
-         else if (mode==PearsonChi2) testStat += pow(dd-ff,2)/ff;
-         else if (mode==NeymanChi2) testStat += pow(dd-ff,2)/dd;
 
-         dd=0;
-         ff=0;
+         // take care of the last bin
+         if (dd>0 || ff>0) { 
+            // We filled a last bin but did not finish.
+            // Merge it with the next to last bin, and undo the last chi2 iteration.
+            nbin--;
+            testStat -= dchi2;
+            ddp+=dd; ffp+=ff;
+         }
 
+         if (mode==BCChi2) dchi2 = ffp - ddp + ddp*log(ddp/ffp);
+         else if (mode==PearsonChi2) dchi2 = pow(ddp-ffp,2)/ffp;
+         else if (mode==NeymanChi2) dchi2 = pow(ddp-ffp,2)/ddp;
+
+         testStat += dchi2;
          nbin++;
-      }
+      } // if (rebin)
 
       if (mode==BCChi2) testStat *= 2.;
 

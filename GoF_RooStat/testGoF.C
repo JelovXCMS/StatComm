@@ -34,6 +34,7 @@ void testGoF()
 
    // Declare observable x
    RooRealVar x("x","x",0,10) ;
+   x.setBins(100);
 
    // Create two Gaussian PDFs g1(x,mean1,sigma) anf g2(x,mean2,sigma) and their parameters
    RooRealVar mean("mean","mean of gaussians",5) ;
@@ -71,7 +72,7 @@ void testGoF()
    RooDataSet *data = model.generate(x,1000) ;
 
    // Fit model to data
-   RooFitResult *fr = model.fitTo(*data,Save()) ;
+   RooFitResult *fr = model.fitTo(*data,Save(),NumCPU(4)) ;
    // save best fit parameters
    RooArgSet* params = model.getParameters(x) ;
    RooArgSet* bestFitParams = (RooArgSet*) params->snapshot() ;
@@ -85,8 +86,9 @@ void testGoF()
    model.plotOn(xframe) ;
 
    // Draw the frame on the canvas
-   new TCanvas("rf201_composite","rf201_composite",600,600) ;
+   TCanvas *c = new TCanvas("rf201_composite","rf201_composite",600,600) ;
    gPad->SetLeftMargin(0.15) ; xframe->GetYaxis()->SetTitleOffset(1.4) ; xframe->Draw() ;
+   c->SaveAs("data.pdf");
 
 
    // G o o d n e s s - o f - f i t
@@ -99,7 +101,7 @@ void testGoF()
    // for binned tests
    RooGoF goftest(xframe->getHist("h_modelData"),xframe->getCurve("model_Norm[x]"));
    goftest.setRange(x.getMin(),x.getMax());
-   goftest.setRebin(5); // better rebin the data to make sure that all bins have >=5 events
+   goftest.setRebin(5,false); // better rebin to make sure that all bins have >=5 expected events
 
    // for unbinned tests
    // RooGoF goftest_unbinned(data,xframe->getCurve("model_Norm[x]"),"x");
@@ -114,7 +116,7 @@ void testGoF()
    cout << "KS (asym.): " << pvalue << ", " << testStat << endl;
 
    // we can also estimate the p-value using toys
-   goftest_unbinned.setNtoys(1000,true);
+   goftest_unbinned.setNtoys(1000,true,NumCPU(4));
    goftest_unbinned.ADTest(pvalue,testStat);
    cout << "AD (toys): " << pvalue << ", " << testStat << endl;
    goftest_unbinned.KSTest(pvalue,testStat);
@@ -207,6 +209,7 @@ void testGoF()
       // do gof before
       RooGoF goftesttoy(xframetoy->getHist("h_modelData"),xframetoy->getCurve("model_Norm[x]"));
       goftesttoy.setRange(x.getMin(),x.getMax());
+      goftesttoy.setRebin(5,false); 
       // RooGoF goftesttoy_unbinned(datatoy,xframetoy->getCurve("model_Norm[x]"),"x");
       RooGoF goftesttoy_unbinned(datatoy,&model,&x);
       goftesttoy_unbinned.setRange(x.getMin(),x.getMax());
@@ -219,7 +222,7 @@ void testGoF()
       goftesttoy.PearsonChi2Test(pval_PearsonChi2_before,ts_PearsonChi2_before);
 
       // do the fit
-      model.fitTo(*datatoy) ;
+      model.fitTo(*datatoy,NumCPU(4)) ;
 
       // do gof after
       RooPlot* xframetoy2 = x.frame(Title("toy dataset")) ;
@@ -227,6 +230,7 @@ void testGoF()
       model.plotOn(xframetoy2) ;
       RooGoF goftesttoy2(xframetoy2->getHist("h_modelData"),xframetoy2->getCurve("model_Norm[x]"));
       goftesttoy2.setRange(x.getMin(),x.getMax());
+      goftesttoy2.setRebin(5,false); 
       // RooGoF goftesttoy2_unbinned(datatoy,xframetoy2->getCurve("model_Norm[x]"),"x");
       RooGoF goftesttoy2_unbinned(datatoy,&model,&x);
       RooGoF goftesttoy2_unbinned_t(datatoy,&model,&x);

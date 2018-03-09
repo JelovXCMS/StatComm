@@ -31,7 +31,7 @@ namespace RooFit {
          void setRange(double xmin, double xmax);
 
          // rebinning mode (default = none)
-         void setRebin(int min_bincontent = 5);
+         void setRebin(int min_bincontent = 5, bool rebinObs = false); // if rebinObs = true, the minimum bin content is applied to observed counts instead of expected
 
          // toys
          void setNtoys(int nToys, bool doReFit=true,
@@ -66,6 +66,7 @@ namespace RooFit {
          double     _themin;
          double     _themax;
          int        _min_binc;
+         bool       _rebinObs;
          bool       _doReFit;
          int        _NToys;
          RooCmdArg  _arg1;
