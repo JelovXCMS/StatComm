@@ -32,7 +32,7 @@ In the case of the AD and KS tests, it is possible to estimate their expected di
 
 ### Other
 * ``setRange(double xmin, double xmax)``: set the range in which to compute the test
-* ``setRebin(int min_bincontent)``: set the minimum bin content. Bins below this value will be merged. (Default: equal to 0, no merging is done)
+* ``setRebin(int min_bincontent, bool rebinObs)``: set the minimum bin content. Bins below this value will be merged. (Default: equal to 0, no merging is done). The second argument detrmines if the rebinning criterion applies to observed or expected events (default: false, rebin based on expected events).
 
 ## More information
 See [these slides](https://indico.cern.ch/event/706009/contributions/2906952/attachments/1607035/2550282/chapon_GoF_20180226.pdf).
